@@ -2,6 +2,12 @@
 NoTakeAction,我有我的想法
 NoTakeAction,這張我也有
 NoTakeAction,先留一手好了
+NoTakeAction,吃了也沒意義
+NoTakeAction,沒意義吧
+NoTakeAction,先過好了
+NoTakeAction,先不要吃好了
+NoTakeAction,我就先不碰了
+NoTakeAction,這張我就先不要了
 Nothing,太無聊了吧
 Nothing,上家~做事阿
 Nothing,好悶喔
@@ -251,23 +257,23 @@ OtherFollow,再打安全牌沒關係啊
 OtherFollow,再跟打你就胡不了拉
 OtherFollow,不要那麼龜好不好
 OtherFollow,別怕齁
-SubTinNum,這次摸真的猛
-SubTinNum,哇! 神進牌欸
-SubTinNum,有點東西喔
-SubTinNum,可以可以，讓你們看看什麼叫麻將俠
-SubTinNum,真的是要什麼牌就有什麼牌
-SubTinNum,摸到了好東西
-SubTinNum,摸一張~ 進
-SubTinNum,進張進張
-SubTinNum,這張剛好我需要
-SubTinNum,老子要出國深造，機票錢就靠你們了
-SubTinNum,神來一手
-SubTinNum,這就是我要的
-SubTinNum,離胡牌又近了一步阿
-SubTinNum,這張水啦
-SubTinNum,嘿嘿真棒
-SubTinNum,來了
-SubTinNum,我感應到你了
+SubTingNum,這次摸真的猛
+SubTingNum,哇! 神進牌欸
+SubTingNum,有點東西喔
+SubTingNum,可以可以，讓你們看看什麼叫麻將俠
+SubTingNum,真的是要什麼牌就有什麼牌
+SubTingNum,摸到了好東西
+SubTingNum,摸一張~ 進
+SubTingNum,進張進張
+SubTingNum,這張剛好我需要
+SubTingNum,老子要出國深造，機票錢就靠你們了
+SubTingNum,神來一手
+SubTingNum,這就是我要的
+SubTingNum,離胡牌又近了一步阿
+SubTingNum,這張水啦
+SubTingNum,嘿嘿真棒
+SubTingNum,來了
+SubTingNum,我感應到你了
 PassDraw,讓我摸一下牌嘛
 PassDraw,好啊，都別玩啊
 PassDraw,阿跳過我是怎樣
@@ -279,6 +285,8 @@ PassDraw,這樣我怎麼進牌
 PassDraw,都給你們玩就好了啊!
 PassDraw,我想摸牌啊
 PassDraw,我現在手很癢喔
+PassDraw,再不給我摸牌沒關係啊
+PassDraw,就這樣跳過我沒關係啊ㄋ
 ThrowBefore,齁剛剛才丟過這張喔
 ThrowBefore,這張牌麼又來了阿
 ThrowBefore,手氣真的很差

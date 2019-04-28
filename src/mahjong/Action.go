@@ -114,6 +114,7 @@ func (player *Player) Throw(drawTile Tile) Tile {
 			if player.checkTing(val) && val.(bool) {
 				player.IsTing = true
 				player.room.BroadcastTing(player.ID)
+				player.room.Speak("Ting", NewTile(-1, 0), player.ID, player.ID)
 			}
 		}()
 	}

@@ -52,7 +52,7 @@ func (room Room) Speak(action string, card Tile, currentIdx int, actionIdx int) 
 				}
 			}
 
-		} else if room.Players[currentIdx].ThrowTimes < 2 && card.Suit != 3 { //別人前兩輪不是丟字牌
+		} else if room.Players[currentIdx].ThrowTimes < 1 && card.Suit != 3 { //別人前兩輪不是丟字牌
 			action = "ThrowGoodFirst"
 			actionIdx = (currentIdx + rand.Intn(3) + 1) % 4
 		}
@@ -64,7 +64,7 @@ func (room Room) Speak(action string, card Tile, currentIdx int, actionIdx int) 
 				}
 			}
 		} else if room.Players[currentIdx].StepsToHu > room.Players[currentIdx].Hand.CountStepsToHu() {
-			action = "SubTinNum"
+			action = "SubTingNum"
 		} else if Find(card, room.Players[currentIdx].ThrowBefore) {
 			action = "ThrowBefore"
 		} else if room.Players[currentIdx].OtherTing || room.Deck.Count() <= 48 {
@@ -137,7 +137,7 @@ func (room Room) Speak(action string, card Tile, currentIdx int, actionIdx int) 
 	case "Gon":
 	case "PonGon":
 	case "OnGon":
-	case "SubTinNum":
+	case "SubTingNum":
 	case "ThrowBefore":
 	case "Dangerous":
 	case "Follow":
