@@ -76,8 +76,13 @@ func (room Room) Speak(action string, card Tile, currentIdx int, actionIdx int) 
 				}
 			}
 		}
-	} else if action == "Tin" && room.Deck.Count() > 60 {
-		action += "Fast"
+	} else if action == "Ting" {
+		for i := 1; i < 4; i++ {
+			room.Players[(currentIdx+1)%4].OtherTing = true
+		}
+		if room.Deck.Count() > 60 {
+			action += "Fast"
+		}
 	}
 
 	if action == "Pon" || action == "Eat" || action == "Gon" || action == "Hu" {
@@ -119,7 +124,7 @@ func (room Room) Speak(action string, card Tile, currentIdx int, actionIdx int) 
 			room.BroadcastCoversation((currentIdx+1+rand.Intn(sub-1))%4, "PassDraw")
 		}
 
-	} else if action == "Dangerous" || action == "Follow" || action == "Tin" || action == "TinFast" || action == "Ongon" || action == "KeepWin" {
+	} else if action == "Dangerous" || action == "Follow" || action == "Ting" || action == "TingFast" || action == "Ongon" || action == "KeepWin" {
 		action = "Other" + action
 		room.BroadcastCoversation((actionIdx+rand.Intn(3)+1)%4, action)
 	}
