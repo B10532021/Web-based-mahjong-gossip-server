@@ -1,0 +1,491 @@
+package mahjong
+
+import (
+	"math/rand"
+	"strings"
+	"sync"
+	"time"
+)
+
+const roundAmount = 1
+
+// Game State
+const (
+	BeforeStart = iota
+	DealTile
+	BuHua
+	IdxTurn
+)
+
+// GameResult represents the result of mahjong
+type GameResult struct {
+	Hand     []string
+	Door     [][]string
+	Score    int
+	ScoreLog ScoreRecord
+}
+
+// Run runs mahjong logic
+func (room *Room) Run() {
+	defer func() {
+		recover()
+	}()
+	room.NumKeepWin = 0
+	for i := 0; i < roundAmount; i++ {
+		for j := 0; j < 4; j++ {
+			room.setWindAndRound(i, j)
+
+			if i == 0 && j == 0 && room.NumKeepWin == 0 {
+				room.openDoor(true)
+				room.Banker = room.OpenIdx
+			} else {
+				room.Banker = (room.Banker + 1) % 4
+			}
+
+			for room.KeepWin = true; room.KeepWin; {
+				if !(i == 0 && j == 0 && room.NumKeepWin == 0) {
+					room.openDoor(false)
+				}
+				room.BroadcastBanker(room.Banker, room.NumKeepWin)
+				//連莊哈拉
+				if room.NumKeepWin != 0 && room.KeepWin {
+					room.Speak("KeepWin", NewTile(-1, 0), room.Banker, room.Banker)
+				}
+				currentIdx := room.Banker
+				room.preproc(currentIdx)
+
+				flag := false
+				for k := 0; k < 4; k++ {
+					if room.Players[k].Flowers.Count() == 8 {
+						flag = true
+						room.Players[k].Hu(room.Players[k].Flowers.At(0), TaiData{8, "八仙過海 "}, COMMAND["ZIMO"], false, false, -1)
+						room.Speak("Zimo", NewTile(-1, 0), -1, k)
+						currentIdx = k
+					}
+				}
+				if flag {
+					if currentIdx != room.Banker {
+						room.KeepWin = false
+						room.NumKeepWin = 0
+					} else {
+						room.KeepWin = true
+						room.NumKeepWin++
+					}
+				} else {
+					onlyThrow := false
+					gameOver := false
+					//拿到一手不錯的牌
+					for k := 0; k < 4; k++ {
+						if room.Players[k].StepsToHu = room.Players[k].Hand.CountStepsToHu(); room.Players[k].StepsToHu < 4 {
+							room.Speak("GoodStart", NewTile(-1, 0), -1, k)
+							//currentIdx = k??
+						}
+					}
+					for {
+						time.Sleep(1 * time.Second)
+
+						curPlayer := room.Players[currentIdx]
+						throwTile := NewTile(-1, 0)
+						act := NewAction(COMMAND["NONE"], throwTile, 0)
+						sevenFlower := false
+						room.State = IdxTurn + currentIdx
+
+						if onlyThrow {
+							throwTile = curPlayer.Throw(throwTile)
+							onlyThrow = false
+						} else {
+							act, gameOver, sevenFlower = curPlayer.Draw()
+							throwTile = act.Tile
+						}
+
+						if gameOver {
+							room.end()
+							if sevenFlower && currentIdx != room.Banker {
+								room.Speak("Hu", act.Tile, currentIdx, room.SevenID)
+								room.KeepWin = false
+								room.NumKeepWin = 0
+							} else {
+								room.Speak("Zimo", act.Tile, currentIdx, currentIdx)
+								room.KeepWin = true
+								room.NumKeepWin++
+							}
+							break
+						}
+
+						robGon, huIdxArray, gonIdx, ponIdx, eatAction := room.checkAction(currentIdx, act, throwTile)
+						if robGon {
+							curPlayer.Fail(act.Command)
+							room.BroadcastRobGon(curPlayer.ID, act.Tile)
+						} else if act.Command != COMMAND["NONE"] && (act.Command&COMMAND["ZIMO"]) == 0 {
+							curPlayer.Success(currentIdx, act.Command, act.Tile, act.Score)
+							if act.Command == COMMAND["ONGON"] {
+								room.Speak("OnGon", act.Tile, currentIdx, currentIdx)
+							} else if act.Command == COMMAND["PONGON"] {
+								room.Speak("PonGon", act.Tile, currentIdx, currentIdx)
+							}
+						} else if (act.Command & COMMAND["ZIMO"]) != 0 {
+							huIdxArray = append(huIdxArray, curPlayer.ID)
+						}
+						curPlayer.JustGon = false
+
+						currentIdx, onlyThrow = room.doAction(currentIdx, throwTile, huIdxArray, gonIdx, ponIdx, eatAction)
+						if currentIdx == curPlayer.ID && len(huIdxArray) == 0 && (act.Command&COMMAND["ONGON"]) == 0 && (act.Command&COMMAND["PONGON"]) == 0 {
+							curPlayer.DiscardTiles.Add(throwTile)
+							currentIdx = (currentIdx + 1) % 4
+						}
+
+						if len(huIdxArray) > 0 {
+							if (act.Command & COMMAND["ZIMO"]) != 0 {
+								room.Speak("Zimo", act.Tile, currentIdx, currentIdx)
+							} else {
+								room.Speak("Hu", act.Tile, currentIdx, huIdxArray[0])
+							}
+							room.end()
+							flag := false
+							for _, huIdx := range huIdxArray {
+								if huIdx == room.Banker {
+									room.KeepWin = true
+									room.NumKeepWin++
+									flag = true
+									break
+								}
+							}
+							if !flag {
+								room.KeepWin = false
+								room.NumKeepWin = 0
+							}
+							break
+						}
+						if room.Deck.Count() <= 16 {
+							room.Speak("Draws", NewTile(-1, 0), -1, room.Banker)
+							room.end()
+							room.KeepWin = true
+							room.NumKeepWin++
+							break
+						}
+						for i := 0; i < 4; i++ {
+							if room.Players[i].NoActionTimes > 30 && !onlyThrow {
+								room.Speak("NoAction", NewTile(-1, 0), i, i)
+								room.Players[i].NoActionTimes = 0
+							}
+						}
+					}
+				}
+				time.Sleep(20 * time.Second)
+			}
+		}
+	}
+	room.BroadcastGameEnd()
+	players := FindPlayerListInRoom(room.Name, 1)
+	for _, player := range players {
+		player.State = WAITING
+	}
+}
+
+func (room *Room) setWindAndRound(wind int, round int) {
+	room.Info.Winds = 0
+	if wind == round {
+		room.Info.Winds = room.Info.Winds | 16
+	}
+	temp := (1 << uint(wind)) | (1 << uint(round))
+	room.Info.Winds = room.Info.Winds | Wind(temp)
+	room.Wind = wind
+	room.Round = round
+	room.BroadcastWindAndRound(wind, round)
+}
+
+func (room *Room) preproc(startIdx int) {
+	time.Sleep(1 * time.Second)
+	room.init(startIdx)
+	time.Sleep(1 * time.Second)
+	room.buHua(startIdx)
+	time.Sleep(1 * time.Second)
+}
+
+func (room *Room) openDoor(isFirst bool) {
+	dice := int(rand.Int31n(16)) + 2
+	if isFirst {
+		room.OpenIdx = dice % 4
+	} else {
+		room.OpenIdx = (room.Banker + dice) % 4
+	}
+	room.BroadcastOpenDoor(room.OpenIdx, dice+1)
+	if isFirst {
+		room.EastIdx = room.OpenIdx
+		room.BroadcastSetSeat(room.EastIdx)
+	}
+	time.Sleep(3 * time.Second)
+}
+
+func (room *Room) init(startIdx int) {
+	room.Deck = NewSuitSet(true)
+	room.Turn = 0
+	for i := 0; i < 4; i++ {
+		player := room.Players[(i+startIdx)%4]
+		player.Init()
+		for j := 0; j < 16; j++ {
+			result := room.Deck.Draw()
+			player.Hand.Add(result)
+		}
+	}
+	room.State = DealTile
+}
+
+func (room *Room) buHua(startIdx int) {
+	flag := true
+	for flag {
+		flag = false
+		for i := 0; i < 4; i++ {
+			player := room.Players[(i+startIdx)%4]
+			need := player.Hand[4].Count()
+			if need > 0 {
+				flag = true
+				player.Flowers[4] += player.Hand[4]
+				player.Hand[4] = Suit(0)
+				for j := 0; j < int(need); j++ {
+					result := room.Deck.Draw()
+					player.Hand.Add(result)
+				}
+			}
+		}
+	}
+
+	var data [][]string
+	for i := 0; i < 4; i++ {
+		player := room.Players[i]
+		player.Socket().Emit("dealTile", player.Hand.ToStringArray())
+		data = append(data, player.Flowers.ToStringArray())
+	}
+	room.BroadcastBuHua(data)
+	room.State = BuHua
+}
+
+func (room *Room) checkSevenFlower(player *Player, tile Tile) bool {
+	if room.SevenFlower {
+		if room.SevenID != player.ID {
+			room.Players[room.SevenID].Hu(tile, TaiData{8, "七搶一 "}, COMMAND["HU"], false, false, player.ID)
+		} else {
+			player.Hu(tile, TaiData{8, "八仙過海 "}, COMMAND["ZIMO"], false, false, -1)
+		}
+		return true
+	} else if player.Flowers.Count() == 7 {
+		room.SevenFlower = true
+		room.SevenID = player.ID
+	}
+	return false
+}
+
+func (room *Room) checkAction(currentIdx int, playerAct Action, throwTile Tile) (bool, []int, int, int, EatAction) {
+	ponIdx, gonIdx, huIdxArray, eatAction := -1, -1, []int{}, EatAction{-1, throwTile, throwTile}
+	fail := false
+
+	if (playerAct.Command & COMMAND["PONGON"]) != 0 {
+		fail = room.checkRobGon(currentIdx, playerAct.Tile, &huIdxArray)
+	} else if (playerAct.Command&COMMAND["ZIMO"]) == 0 && (playerAct.Command&COMMAND["ONGON"]) == 0 {
+		room.checkOthers(currentIdx, throwTile, &huIdxArray, &gonIdx, &ponIdx, &eatAction)
+	}
+
+	return fail, huIdxArray, gonIdx, ponIdx, eatAction
+}
+
+func (room *Room) checkRobGon(currentIdx int, gonTile Tile, huIdxArray *[]int) bool {
+	var waitGroup sync.WaitGroup
+	var playersAct [3]Action
+	waitGroup.Add(3)
+	for i := 1; i < 4; i++ {
+		id := (i + currentIdx) % 4
+		tai := TaiData{-1, ""}
+		if room.Players[id].CheckHu(gonTile, 0, &tai) {
+			actionSet := NewActionSet()
+			actionSet[COMMAND["HU"]] = append(actionSet[COMMAND["HU"]], gonTile.ToString())
+			go func(i int) {
+				playersAct[i-1] = room.Players[i].Command(actionSet, COMMAND["HU"], currentIdx)
+				waitGroup.Done()
+			}(id)
+		} else {
+			waitGroup.Done()
+		}
+	}
+	waitGroup.Wait()
+	return room.robGon(currentIdx, playersAct, gonTile, huIdxArray)
+}
+
+func (room *Room) robGon(currentIdx int, playersAct [3]Action, huTile Tile, huIdxArray *[]int) bool {
+	fail := false
+	curPlayer := room.Players[currentIdx]
+	for i := 1; i < 4; i++ {
+		id := (i + currentIdx) % 4
+		playerAct := playersAct[i-1]
+		if (playerAct.Command & COMMAND["HU"]) != 0 {
+			*huIdxArray = append(*huIdxArray, id)
+			if !fail {
+				curPlayer.GonTiles.Sub(huTile)
+				curPlayer.PonTiles.Add(huTile)
+			}
+			*huIdxArray = append(*huIdxArray, id)
+			fail = true
+		}
+	}
+	if len(*huIdxArray) > 0 {
+		tai := TaiData{-1, ""}
+		room.Players[(*huIdxArray)[0]].CheckHu(huTile, 0, &tai)
+		room.Players[(*huIdxArray)[0]].Hu(huTile, tai, COMMAND["HU"], true, true, currentIdx)
+	}
+	return fail
+}
+
+func (room *Room) checkOthers(currentIdx int, throwTile Tile, huIdxArray *[]int, gonIdx *int, ponIdx *int, eatAction *EatAction) {
+	playerAct := NewAction(COMMAND["NONE"], throwTile, 0)
+	var playersAct [3]Action
+	var waitGroup sync.WaitGroup
+	waitGroup.Add(3)
+	for i := 1; i < 4; i++ {
+		otherPlayer := room.Players[(i+currentIdx)%4]
+		tai := TaiData{-1, ""}
+
+		otherPlayer.CheckHu(throwTile, 0, &tai)
+		actionSet, command := otherPlayer.getAvaliableAction(currentIdx, false, throwTile, tai)
+		if command == COMMAND["NONE"] {
+			playerAct.Command = COMMAND["NONE"]
+			playersAct[i-1] = playerAct
+			waitGroup.Done()
+		} else {
+			go func(i int) {
+				playersAct[i-1] = otherPlayer.Command(actionSet, command, currentIdx)
+				if actionSet != nil && playersAct[i-1].Command == COMMAND["NONE"] {
+					room.Speak("NoTakeAction", NewTile(-1, 0), -1, otherPlayer.ID)
+				}
+				waitGroup.Done()
+			}(i)
+		}
+	}
+	waitGroup.Wait()
+	for i := 1; i < 4; i++ {
+		playerID := (i + currentIdx) % 4
+		otherPlayer := room.Players[playerID]
+		playerAct = playersAct[i-1]
+
+		if (playerAct.Command & COMMAND["HU"]) != 0 {
+			*huIdxArray = append(*huIdxArray, playerID)
+		} else if (playerAct.Command & COMMAND["GON"]) != 0 {
+			if len(*huIdxArray) == 0 && *gonIdx == -1 {
+				*gonIdx = playerID
+			} else {
+				otherPlayer.Fail(playerAct.Command)
+			}
+		} else if (playerAct.Command & COMMAND["PON"]) != 0 {
+			if len(*huIdxArray) == 0 && *gonIdx == -1 && *ponIdx == -1 {
+				*ponIdx = playerID
+			} else {
+				otherPlayer.Fail(playerAct.Command)
+			}
+		} else if (playerAct.Command & COMMAND["EAT"]) != 0 {
+			if len(*huIdxArray) == 0 && *gonIdx == -1 && *ponIdx == -1 && (*eatAction).Idx == -1 {
+				(*eatAction).Idx = playerID
+				(*eatAction).First = playerAct.Tile
+				(*eatAction).Center = throwTile
+			} else {
+				otherPlayer.Fail(playerAct.Command)
+				(*eatAction).Idx = playerID //哈拉加的
+			}
+		}
+	}
+	if len(*huIdxArray) > 0 {
+		tai := TaiData{-1, ""}
+		room.Players[(*huIdxArray)[0]].CheckHu(throwTile, 0, &tai)
+		room.Players[(*huIdxArray)[0]].Hu(playerAct.Tile, tai, COMMAND["HU"], false, true, currentIdx)
+	} /*else if len(*huIdxArray) == 3 {
+		for i := 1; i < 4; i++ {
+			playerID    := (i + currentIdx) % 4
+			otherPlayer := room.Players[playerID]
+			playerAct    = playersAct[i - 1]
+
+			tai := TaiData{ -1, "" }
+			otherPlayer.CheckHu(throwTile, 0, &tai)
+			otherPlayer.Hu(playerAct.Tile, tai, COMMAND["HU"], false, i == 1, currentIdx)
+		}
+	}*/
+}
+
+func (room *Room) doAction(currentIdx int, throwTile Tile, huIdxArray []int, gonIdx int, ponIdx int, eatAction EatAction) (int, bool) {
+	onlyThrow := false
+
+	if len(huIdxArray) != 0 {
+		//currentIdx = (huIdxArray[len(huIdxArray)-1] + 1) % 4
+		if gonIdx != -1 {
+			room.Players[gonIdx].Fail(COMMAND["GON"])
+		}
+		if ponIdx != -1 {
+			room.Players[ponIdx].Fail(COMMAND["PON"])
+		}
+		if eatAction.Idx != -1 {
+			room.Players[eatAction.Idx].Fail(COMMAND["EAT"])
+		}
+	} else if gonIdx != -1 {
+		room.Players[gonIdx].Success(currentIdx, COMMAND["GON"], throwTile, 0)
+		room.Players[gonIdx].Gon(throwTile, COMMAND["GON"], currentIdx)
+		room.RecordPlayerTimes(COMMAND["GON"], currentIdx, gonIdx) //紀錄玩家的連續事件
+		room.Speak("Gon", throwTile, currentIdx, gonIdx)
+		currentIdx = gonIdx
+	} else if ponIdx != -1 {
+		room.Players[ponIdx].Success(currentIdx, COMMAND["PON"], throwTile, 0)
+		room.Players[ponIdx].Pon(throwTile)
+		room.RecordPlayerTimes(COMMAND["PON"], currentIdx, ponIdx)
+		room.Speak("Pon", throwTile, currentIdx, ponIdx)
+		currentIdx = ponIdx
+		onlyThrow = true
+	} else if eatAction.Idx != -1 {
+		room.Players[eatAction.Idx].Success(currentIdx, COMMAND["EAT"], eatAction, 0)
+		room.Players[eatAction.Idx].Eat(eatAction)
+		room.RecordPlayerTimes(COMMAND["Eat"], currentIdx, eatAction.Idx)
+		room.Speak("Eat", throwTile, currentIdx, eatAction.Idx)
+		currentIdx = eatAction.Idx
+		onlyThrow = true
+	} else {
+		room.RecordPlayerTimes(COMMAND["NONE"], currentIdx, -1)
+	}
+
+	if (gonIdx != -1 || ponIdx != -1) && eatAction.Idx != -1 {
+		room.Speak("CantEat", throwTile, currentIdx, eatAction.Idx)
+	}
+
+	return currentIdx, onlyThrow
+}
+
+func (room *Room) end() {
+	var data []GameResult
+	for _, player := range room.Players {
+		var tmp []string
+		for _, act := range player.EatTiles {
+			tmp = append(tmp, strings.Join([]string{act.First.ToString(), act.Center.ToString()}, ","))
+		}
+		data = append(data, GameResult{
+			player.Hand.ToStringArray(),
+			[][]string{
+				tmp,
+				player.PonTiles.ToStringArray(),
+				player.GonTiles.ToStringArray(),
+				player.OngonTiles.ToStringArray(),
+			},
+			player.Credit,
+			player.ScoreLog,
+		})
+	}
+	room.BroadcastEnd(data)
+}
+
+func (room *Room) RecordPlayerTimes(Command int, currentIdx int, actionIdx int) {
+	for i := 0; i < 4; i++ {
+		if i == actionIdx {
+			room.Players[i].Action(Command, -1)
+			room.Players[currentIdx].BaAction(Command)
+			room.Players[i].NoActionTimes = 0
+		} else if i != currentIdx {
+			room.Players[i].Action(COMMAND["NONE"], currentIdx)
+			room.Players[i].NoActionTimes++
+		}
+	}
+	if actionIdx == -1 {
+		room.Players[currentIdx].BaAction(COMMAND["NONE"])
+	}
+}
