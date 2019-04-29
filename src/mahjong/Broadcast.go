@@ -100,7 +100,8 @@ func (room Room) BroadcastGameEnd() {
 func (room Room) BroadcastCoversation(id int, action string) {
 	if room.Conversation[action] != nil {
 		fmt.Println(action)
-		room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))]+"("+action+")")
+		//room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))]+"("+action+")")
+		room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))])
 	} /*else {
 		room.IO.BroadcastTo(room.Name, "speak", id, action)
 	}*/

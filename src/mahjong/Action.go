@@ -88,12 +88,12 @@ func (player *Player) Throw(drawTile Tile) Tile {
 	} else {
 		defaultTile := drawTile.ToString()
 		go player.Socket().Emit("throw", defaultTile, waitingTime/microSec)
-		val := player.waitForSocket("throwTile", defaultTile, waitingTime)
+		val, isdefault := player.waitForSocket("throwTile", defaultTile, waitingTime)
+		IsDefault = isdefault
 		if player.checkThrow(val) {
 			throwTile = StringToTile(val.(string))
 		} else {
 			throwTile = StringToTile(defaultTile)
-			IsDefault = true
 		}
 	}
 
@@ -110,7 +110,7 @@ func (player *Player) Throw(drawTile Tile) Tile {
 		go func() {
 			waitingTime = 5 * time.Second
 			go player.Socket().Emit("ting", waitingTime/microSec)
-			val := player.waitForSocket("sendTing", false, waitingTime)
+			val, _ := player.waitForSocket("sendTing", false, waitingTime)
 			if player.checkTing(val) && val.(bool) {
 				player.IsTing = true
 				player.room.BroadcastTing(player.ID)
@@ -165,7 +165,7 @@ func (player *Player) Command(actionSet ActionSet, command int, idx int) Action 
 	defaultCommand := NewAction(COMMAND["NONE"], NewTile(-1, 0), 0).ToJSON()
 	waitingTime := 10 * time.Second
 	go player.Socket().Emit("command", actionSet, command, idx, waitingTime/microSec)
-	val := player.waitForSocket("sendCommand", defaultCommand, waitingTime)
+	val, _ := player.waitForSocket("sendCommand", defaultCommand, waitingTime)
 	if player.checkCommand(val) {
 		a := JSONToAction(val.(string))
 		return a
@@ -191,8 +191,9 @@ func (player *Player) Success(from int, command int, tile interface{}, score int
 	player.room.BroadcastCommand(from, player.ID, command, str, score)
 }
 
-func (player *Player) waitForSocket(eventName string, defaultValue interface{}, waitingTime time.Duration) interface{} {
+func (player *Player) waitForSocket(eventName string, defaultValue interface{}, waitingTime time.Duration) (interface{}, bool) {
 	c := make(chan interface{}, 1)
+	IsDefault := false
 	var val interface{}
 	go func() {
 		player.Socket().On(eventName, func(v interface{}) {
@@ -203,8 +204,9 @@ func (player *Player) waitForSocket(eventName string, defaultValue interface{}, 
 	case val = <-c:
 	case <-time.After(waitingTime):
 		val = defaultValue
+		IsDefault = true
 	}
-	return val
+	return val, IsDefault
 }
 
 func (player *Player) getAvaliableAction(id int, isDraw bool, tile Tile, tai TaiData) (ActionSet, int) {
