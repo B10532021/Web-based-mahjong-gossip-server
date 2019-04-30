@@ -53,17 +53,17 @@ func (room Room) GetDoor(id int) ([][][]string, []int, bool) {
 		return [][][]string{}, []int{}, true
 	}
 	var inVisibleList []int
-	var visibleList   [][][]string
+	var visibleList [][][]string
 	for _, player := range room.Players {
 		var tmp []string
 		for _, act := range player.EatTiles {
-			tmp = append(tmp, strings.Join([]string{ act.First.ToString(), act.Center.ToString() }, ","))
+			tmp = append(tmp, strings.Join([]string{act.First.ToString(), act.Center.ToString()}, ","))
 		}
 		if id == player.ID {
-			visibleList   = append(visibleList, [][]string{ tmp, player.PonTiles.ToStringArray(), player.GonTiles.ToStringArray(), player.OngonTiles.ToStringArray() })
+			visibleList = append(visibleList, [][]string{tmp, player.PonTiles.ToStringArray(), player.GonTiles.ToStringArray(), player.OngonTiles.ToStringArray()})
 			inVisibleList = append(inVisibleList, 0)
 		} else {
-			visibleList   = append(visibleList, [][]string{ tmp, player.PonTiles.ToStringArray(), player.GonTiles.ToStringArray(), []string{} })
+			visibleList = append(visibleList, [][]string{tmp, player.PonTiles.ToStringArray(), player.GonTiles.ToStringArray(), []string{}})
 			inVisibleList = append(inVisibleList, int(player.OngonTiles.Count()))
 		}
 	}
@@ -107,4 +107,13 @@ func (room Room) GetScore() []int {
 		scoreList = append(scoreList, player.Credit)
 	}
 	return scoreList
+}
+
+// GetTing returns each player's isTing
+func (room Room) GetTing() []bool {
+	var tingList []bool
+	for _, player := range room.Players {
+		tingList = append(tingList, player.IsTing)
+	}
+	return tingList
 }
