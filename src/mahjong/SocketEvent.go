@@ -1,9 +1,10 @@
 package mahjong
 
 import (
+	"fmt"
 	"log"
 
-	"github.com/googollee/go-socket.io"
+	socketio "github.com/googollee/go-socket.io"
 )
 
 // SocketError is callback of socket error event
@@ -18,6 +19,7 @@ func SocketConnect(so socketio.Socket) {
 	so.Emit("auth")
 
 	so.On("join", func(name string) (string, bool) {
+		fmt.Println(name)
 		if name == "" {
 			return "", true
 		}
@@ -36,31 +38,31 @@ func SocketConnect(so socketio.Socket) {
 		}
 
 		player := PlayerList[index]
-		if (player.State & (MATCHED | READY | PLAYING)) != 0 && room != "" && player.Room == room {
+		if (player.State&(MATCHED|READY|PLAYING)) != 0 && room != "" && player.Room == room {
 			so.Join(room)
 		}
 		player.Socket = &so
 		return player.State
 	})
 
-	so.On("ready",           socketReady)
-	so.On("getRoomInfo",     getRoomInfo)
-	so.On("getID",           getID)
-	so.On("getReadyPlayer",  getReadyPlayer)
+	so.On("ready", socketReady)
+	so.On("getRoomInfo", getRoomInfo)
+	so.On("getID", getID)
+	so.On("getReadyPlayer", getReadyPlayer)
 	so.On("getWindAndRound", getWindAndRound)
-	so.On("getHand",         getHand)
-	so.On("getPlayerList",   getPlayerList)
-	so.On("getHandCount",    getHandCount)
-	so.On("getRemainCount",  getRemainCount)
-	so.On("getDoor",         getDoor)
-	so.On("getSea",          getSea)
-	so.On("getFlower",       getFlower)
-	so.On("getCurrentIdx",   getCurrentIdx)
-	so.On("getScore",        getScore)
-	so.On("getOpenIdx",      getOpenIdx)
-	so.On("getBanker",       getBanker)
-	so.On("getEastIdx",      getEastIdx)
-	so.On("getgetTing",      getTing)
+	so.On("getHand", getHand)
+	so.On("getPlayerList", getPlayerList)
+	so.On("getHandCount", getHandCount)
+	so.On("getRemainCount", getRemainCount)
+	so.On("getDoor", getDoor)
+	so.On("getSea", getSea)
+	so.On("getFlower", getFlower)
+	so.On("getCurrentIdx", getCurrentIdx)
+	so.On("getScore", getScore)
+	so.On("getOpenIdx", getOpenIdx)
+	so.On("getBanker", getBanker)
+	so.On("getEastIdx", getEastIdx)
+	so.On("getgetTing", getTing)
 
 	so.On("disconnection", func() {
 		log.Println("on disconnect")
@@ -74,9 +76,9 @@ func socketReady(uuid string, room string) int {
 		return -1
 	}
 
-	c  := make(chan int, 1)
+	c := make(chan int, 1)
 	fn := func(id int) {
-		c<-id
+		c <- id
 	}
 	go game.Rooms[room].Accept(uuid, fn)
 	return <-c
@@ -91,7 +93,7 @@ func getRoomInfo(uuid string) (string, []string, bool) {
 		return "", []string{}, true
 	}
 	player := PlayerList[index]
-	room   := player.Room
+	room := player.Room
 	return room, GetNameList(FindPlayerListInRoom(room, -1)), false
 }
 
@@ -114,7 +116,7 @@ func getHand(uuid string, room string) []string {
 		return []string{}
 	}
 	index := FindPlayerByUUID(uuid)
-	id    := PlayerList[index].Index
+	id := PlayerList[index].Index
 	return game.Rooms[room].Players[id].Hand.ToStringArray()
 }
 
@@ -155,7 +157,7 @@ func getDoor(uuid string, room string) ([][][]string, []int, bool) {
 		return [][][]string{}, []int{}, true
 	}
 	index := FindPlayerByUUID(uuid)
-	id    := PlayerList[index].Index
+	id := PlayerList[index].Index
 	return game.Rooms[room].GetDoor(id)
 }
 
