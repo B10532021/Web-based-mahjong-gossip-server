@@ -129,28 +129,6 @@ func (room Room) Speak(action string, card Tile, currentIdx int, actionIdx int) 
 		room.BroadcastCoversation((actionIdx+rand.Intn(3)+1)%4, action)
 	}
 
-	/*switch action {
-	case "NoTakeAction":
-	case "Eat":
-	case "CantEat":
-	case "Pon":
-	case "Gon":
-	case "PonGon":
-	case "OnGon":
-	case "SubTingNum":
-	case "ThrowBefore":
-	case "Dangerous":
-	case "Follow":
-	case "Useless":
-	case "Safe":
-	case "LotsOfFlowers":
-	case "Tin":
-	case "Zimo":
-	case "Hu":
-	case "Draws":
-	case "KeepWin":
-	}*/
-
 }
 
 func (player *Player) Action(Command int, throwIdx int) {

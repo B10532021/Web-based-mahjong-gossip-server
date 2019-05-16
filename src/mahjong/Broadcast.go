@@ -2,7 +2,6 @@ package mahjong
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/rand"
 )
 
@@ -99,10 +98,17 @@ func (room Room) BroadcastGameEnd() {
 // BroadcastConversation broadcasts when player have something to say
 func (room Room) BroadcastCoversation(id int, action string) {
 	if room.Conversation[action] != nil {
-		fmt.Println(action)
 		//room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))]+"("+action+")")
-		room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))])
-	} /*else {
-		room.IO.BroadcastTo(room.Name, "speak", id, action)
-	}*/
+		if int(action[1])-int('0') > 0 && int(action[1])-int('0') < 10 {
+			room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))])
+		} else {
+			if rand.Intn(100) < 70 {
+				room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))])
+			}
+		}
+		// if room.Conversation[action] != nil {
+		// 	room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))])
+		// }
+
+	}
 }
