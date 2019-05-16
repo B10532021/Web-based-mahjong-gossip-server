@@ -100,9 +100,13 @@ func (room Room) BroadcastCoversation(id int, action string) {
 	if room.Conversation[action] != nil {
 		//room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))]+"("+action+")")
 		if int(action[1])-int('0') > 0 && int(action[1])-int('0') < 10 {
-			room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))])
+			var toBeSaid = room.Conversation[action][rand.Intn(len(room.Conversation[action]))]
+			if id == 2 && len(toBeSaid) > 5 {
+				toBeSaid = room.Conversation[action][0]
+			}
+			room.IO.BroadcastTo(room.Name, "speak", id, toBeSaid)
 		} else {
-			if rand.Intn(100) < 70 {
+			if rand.Intn(100) < 70 && id != 2 {
 				room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))])
 			}
 		}
