@@ -84,7 +84,7 @@ func Logout(index int) {
 // Exec executes the whole game
 func Exec() {
 	for {
-		if WaitingNum(0) >= 1 && WaitingNum(1) >= 3 {
+		if WaitingNum(0) >= 4 && WaitingNum(1) >= 0 {
 			go CreateRoom()
 			time.Sleep(2 * time.Second)
 		}
@@ -145,16 +145,23 @@ func RemoveRoom(name string) {
 func Match() []string {
 	var sample []string
 
-	waitingBotList := FindPlayerListIsSameState(WAITING, 1)
-	for i := 0; i < 3; i++ {
-		index := rand.Int31n(int32(len(waitingBotList)))
-		sample = append(sample, waitingBotList[index].UUID)
-		waitingBotList = append(waitingBotList[:index], waitingBotList[index+1:]...)
-	}
+	// waitingBotList := FindPlayerListIsSameState(WAITING, 1)
+	// for i := 0; i < 3; i++ {
+	// 	index := rand.Int31n(int32(len(waitingBotList)))
+	// 	sample = append(sample, waitingBotList[index].UUID)
+	// 	waitingBotList = append(waitingBotList[:index], waitingBotList[index+1:]...)
+	// }
+
+	// waitingPlayerList := FindPlayerListIsSameState(WAITING, 0)
+	// index := rand.Int31n(int32(len(waitingPlayerList)))
+	// sample = append(sample, waitingPlayerList[index].UUID)
 
 	waitingPlayerList := FindPlayerListIsSameState(WAITING, 0)
-	index := rand.Int31n(int32(len(waitingPlayerList)))
-	sample = append(sample, waitingPlayerList[index].UUID)
+	for i := 0; i < 4; i++ {
+		index := rand.Int31n(int32(len(waitingPlayerList)))
+		sample = append(sample, waitingPlayerList[index].UUID)
+		waitingPlayerList = append(waitingPlayerList[:index], waitingPlayerList[index+1:]...)
+	}
 
 	for _, uuid := range sample {
 		index := FindPlayerByUUID(uuid)
