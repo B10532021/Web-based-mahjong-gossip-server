@@ -1,6 +1,7 @@
 package mahjong
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -45,6 +46,24 @@ func SocketConnect(so socketio.Socket) {
 		return player.State
 	})
 
+	so.On("gossip", func() string {
+		game.GossipServer = so
+		var record []ActionInfo
+		for i := 0; i < 5; i++ {
+			record = append(record, ActionInfo{10, "throw", 0, NewTile(2, 3)})
+		}
+		gossipInfo := &GossipInfo{10, SuitSet{10, 10, 10}, 10, 10,
+			true, false, []Tile{NewTile(2, 3), NewTile(2, 3)}, record, SuitSet{10, 10, 10}}
+		info, err := json.Marshal(gossipInfo)
+		if err != nil {
+			fmt.Println(err)
+			return "json fail"
+		}
+		fmt.Println(string(info))
+		game.GossipServer.Emit("gossipInfo", info)
+		return "connect"
+	})
+
 	so.On("ready", socketReady)
 	so.On("getRoomInfo", getRoomInfo)
 	so.On("getID", getID)
@@ -63,6 +82,7 @@ func SocketConnect(so socketio.Socket) {
 	so.On("getBanker", getBanker)
 	so.On("getEastIdx", getEastIdx)
 	so.On("getgetTing", getTing)
+	so.On("addspeaklog", addSpeakLog)
 
 	so.On("disconnection", func() {
 		log.Println("on disconnect")
@@ -215,4 +235,8 @@ func getTing(room string) []bool {
 		return []bool{}
 	}
 	return game.Rooms[room].GetTing()
+}
+
+func addSpeakLog(room string, sentence string) {
+	fmt.Println(room, sentence)
 }
