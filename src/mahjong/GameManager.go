@@ -21,15 +21,16 @@ func NewGameManager() bool {
 	}
 
 	rooms := make(map[string]*Room)
-	game = &GameManager{rooms, server, sync.Mutex{}}
+	game = &GameManager{rooms, server, sync.Mutex{}, nil}
 	return false
 }
 
 // GameManager represents a gameManager
 type GameManager struct {
-	Rooms  map[string]*Room
-	Server *socketio.Server
-	Locker sync.Mutex
+	Rooms        map[string]*Room
+	Server       *socketio.Server
+	Locker       sync.Mutex
+	GossipServer socketio.Socket
 }
 
 // GetServer returns socket io server
@@ -84,7 +85,7 @@ func Logout(index int) {
 // Exec executes the whole game
 func Exec() {
 	for {
-		if WaitingNum(0) >= 4 && WaitingNum(1) >= 0 {
+		if WaitingNum(0) >= 1 && WaitingNum(1) >= 3 {
 			go CreateRoom()
 			time.Sleep(2 * time.Second)
 		}
@@ -145,23 +146,23 @@ func RemoveRoom(name string) {
 func Match() []string {
 	var sample []string
 
-	// waitingBotList := FindPlayerListIsSameState(WAITING, 1)
-	// for i := 0; i < 3; i++ {
-	// 	index := rand.Int31n(int32(len(waitingBotList)))
-	// 	sample = append(sample, waitingBotList[index].UUID)
-	// 	waitingBotList = append(waitingBotList[:index], waitingBotList[index+1:]...)
-	// }
-
-	// waitingPlayerList := FindPlayerListIsSameState(WAITING, 0)
-	// index := rand.Int31n(int32(len(waitingPlayerList)))
-	// sample = append(sample, waitingPlayerList[index].UUID)
+	waitingBotList := FindPlayerListIsSameState(WAITING, 1)
+	for i := 0; i < 3; i++ {
+		index := rand.Int31n(int32(len(waitingBotList)))
+		sample = append(sample, waitingBotList[index].UUID)
+		waitingBotList = append(waitingBotList[:index], waitingBotList[index+1:]...)
+	}
 
 	waitingPlayerList := FindPlayerListIsSameState(WAITING, 0)
-	for i := 0; i < 4; i++ {
-		index := rand.Int31n(int32(len(waitingPlayerList)))
-		sample = append(sample, waitingPlayerList[index].UUID)
-		waitingPlayerList = append(waitingPlayerList[:index], waitingPlayerList[index+1:]...)
-	}
+	index := rand.Int31n(int32(len(waitingPlayerList)))
+	sample = append(sample, waitingPlayerList[index].UUID)
+
+	// waitingPlayerList := FindPlayerListIsSameState(WAITING, 0)
+	// for i := 0; i < 4; i++ {
+	// 	index := rand.Int31n(int32(len(waitingPlayerList)))
+	// 	sample = append(sample, waitingPlayerList[index].UUID)
+	// 	waitingPlayerList = append(waitingPlayerList[:index], waitingPlayerList[index+1:]...)
+	// }
 
 	for _, uuid := range sample {
 		index := FindPlayerByUUID(uuid)
