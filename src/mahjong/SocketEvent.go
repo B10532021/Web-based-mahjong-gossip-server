@@ -83,7 +83,7 @@ func SocketConnect(so socketio.Socket) {
 	so.On("getBanker", getBanker)
 	so.On("getEastIdx", getEastIdx)
 	so.On("getgetTing", getTing)
-	so.On("addspeaklog", addSpeakLog)
+	so.On("manualInputMessage", manualInputMessage)
 
 	so.On("disconnection", func() {
 		log.Println("on disconnect")
@@ -238,6 +238,7 @@ func getTing(room string) []bool {
 	return game.Rooms[room].GetTing()
 }
 
-func addSpeakLog(room string, sentence string) {
-	fmt.Println(room, sentence)
+func manualInputMessage(room string, sentence string, id int) {
+	fmt.Println(room, sentence, id)
+	game.Rooms[room].IO.BroadcastTo(game.Rooms[room].Name, "speak", id, sentence)
 }
