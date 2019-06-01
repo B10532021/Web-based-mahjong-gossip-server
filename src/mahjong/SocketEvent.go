@@ -1,7 +1,6 @@
 package mahjong
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -48,19 +47,21 @@ func SocketConnect(so socketio.Socket) {
 
 	so.On("gossip", func() string {
 		game.GossipServer = so
-		var record []ActionInfo
-		for i := 0; i < 5; i++ {
-			record = append(record, ActionInfo{10, "throw", 0, NewTile(2, 3)})
-		}
-		gossipInfo := &GossipInfo{10, SuitSet{10, 10, 10}, 10, 10,
-			true, false, []Tile{NewTile(2, 3), NewTile(2, 3)}, record, SuitSet{10, 10, 10}}
-		info, err := json.Marshal(gossipInfo)
-		if err != nil {
-			fmt.Println(err)
-			return "json fail"
-		}
-		fmt.Println(string(info))
-		game.GossipServer.Emit("gossipInfo", info)
+		// var record []ActionInfo
+		// for i := 0; i < 5; i++ {
+		// 	record = append(record, ActionInfo{10, "throw", 0, "f6"})
+		// }
+		// gossipInfo := &GossipInfo{"Throw", 10, SuitSet{10, 10, 10}, 10, 10,
+		// 	true, false, []string{"o7", "o8"}, record, SuitSet{10, 10, 10}}
+		// info, err := json.Marshal(gossipInfo)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// 	return "json fail"
+		// }
+		// fmt.Printf("%T\n", info)
+		// game.GossipServer.Emit("gossipInfo", string("inadsf"), func(pid int, situation string) {
+		// 	fmt.Println(pid, situation)
+		// })
 		return "connect"
 	})
 
