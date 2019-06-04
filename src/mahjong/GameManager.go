@@ -10,6 +10,10 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const (
+	MONGODB_URL = "127.0.0.1:27017"
+)
+
 var game *GameManager
 
 // NewGameManager creates a new gameManager
@@ -19,6 +23,12 @@ func NewGameManager() bool {
 		log.Fatal(err)
 		return true
 	}
+	// session, err2 := mgo.Dial(MONGODB_URL)
+	// if err2 != nil {
+	// 	panic(err2)
+	// }
+	// session.SetMode(mgo.Monotonic, true)
+	// db := session.DB("gossip")
 
 	rooms := make(map[string]*Room)
 	game = &GameManager{rooms, server, sync.Mutex{}, nil}
@@ -27,10 +37,11 @@ func NewGameManager() bool {
 
 // GameManager represents a gameManager
 type GameManager struct {
-	Rooms        map[string]*Room
-	Server       *socketio.Server
-	Locker       sync.Mutex
-	GossipServer socketio.Socket
+	Rooms  map[string]*Room
+	Server *socketio.Server
+	Locker sync.Mutex
+	//GossipDB     *mgo.Database
+	GossipDealer socketio.Socket
 }
 
 // GetServer returns socket io server
@@ -110,7 +121,6 @@ func CreateRoom() {
 	matchPlayer := Match()
 	game.Rooms[roomName] = NewRoom(roomName)
 	game.Rooms[roomName].IO = game.Server
-	game.Rooms[roomName].LoadConversation("mahjong/sentences.csv")
 	game.Rooms[roomName].AddPlayer(matchPlayer)
 	game.Rooms[roomName].WaitToStart()
 	RemoveRoom(roomName)

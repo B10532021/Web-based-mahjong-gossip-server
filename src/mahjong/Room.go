@@ -1,9 +1,6 @@
 package mahjong
 
 import (
-	"encoding/csv"
-	"fmt"
-	"os"
 	"time"
 
 	socketio "github.com/googollee/go-socket.io"
@@ -17,29 +14,28 @@ const TAI = 1
 
 // NewRoom creates a new room
 func NewRoom(name string) *Room {
-	return &Room{Name: name, Waiting: false, State: BeforeStart, Conversation: make(map[string][]string)}
+	return &Room{Name: name, Waiting: false, State: BeforeStart}
 }
 
 // Room represents a round of mahjong
 type Room struct {
-	Players      []*Player
-	Deck         SuitSet
-	Turn         int
-	Waiting      bool
-	IO           *socketio.Server
-	Name         string
-	State        int
-	Info         HuInfo
-	KeepWin      bool
-	NumKeepWin   int
-	Banker       int
-	SevenFlower  bool
-	SevenID      int
-	Wind         int
-	Round        int
-	OpenIdx      int
-	EastIdx      int
-	Conversation map[string][]string
+	Players     []*Player
+	Deck        SuitSet
+	Turn        int
+	Waiting     bool
+	IO          *socketio.Server
+	Name        string
+	State       int
+	Info        HuInfo
+	KeepWin     bool
+	NumKeepWin  int
+	Banker      int
+	SevenFlower bool
+	SevenID     int
+	Wind        int
+	Round       int
+	OpenIdx     int
+	EastIdx     int
 }
 
 // NumPlayer returns the number of player in the room
@@ -117,26 +113,4 @@ func (room *Room) Accept(uuid string, callback func(int)) {
 	player.Index = idx
 	PlayerList[index].State = READY
 	game.Locker.Unlock()
-}
-
-func (room *Room) LoadConversation(filename string) {
-	file, err := os.Open(filename)
-	if err != nil {
-		fmt.Println(1, err)
-		return
-	}
-	defer file.Close()
-
-	csvReader := csv.NewReader(file)
-
-	rows, err := csvReader.ReadAll()
-	if err != nil {
-		fmt.Println(2, err)
-		return
-	}
-
-	for _, row := range rows {
-		room.Conversation[row[0]] = append(room.Conversation[row[0]], row[1])
-		fmt.Println(row[1])
-	}
 }

@@ -2,7 +2,6 @@ package mahjong
 
 import (
 	"encoding/json"
-	"math/rand"
 )
 
 // BroadcastRemainTile broadcasts remain tile
@@ -96,23 +95,20 @@ func (room Room) BroadcastGameEnd() {
 }
 
 // BroadcastConversation broadcasts when player have something to say
-func (room Room) BroadcastCoversation(id int, action string) {
-	if room.Conversation[action] != nil {
-		//room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))]+"("+action+")")
-		if int(action[1])-int('0') > 0 && int(action[1])-int('0') < 10 {
-			var toBeSaid = room.Conversation[action][rand.Intn(len(room.Conversation[action]))]
-			if id == 2 && len(toBeSaid) > 5 {
-				toBeSaid = room.Conversation[action][0]
-			}
-			room.IO.BroadcastTo(room.Name, "speak", id, toBeSaid)
-		} else {
-			if rand.Intn(100) < 70 && id != 2 {
-				room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))])
-			}
-		}
-		// if room.Conversation[action] != nil {
-		// 	room.IO.BroadcastTo(room.Name, "speak", id, room.Conversation[action][rand.Intn(len(room.Conversation[action]))])
-		// }
-
+func (room Room) BroadcastCoversation(id int, sentence string) {
+	if id == -1 || sentence == "" {
+		return
 	}
+	room.IO.BroadcastTo(room.Name, "speak", room.Players[id].ID, sentence)
+	// result := []Sentence{}
+	// err := game.GossipDB.C("sentences").Find(bson.M{"Situation": action, "$or": []bson.M{bson.M{"Name": ""}, bson.M{"Name": "123"}}}).All(&result)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+	// fmt.Println(result[rand.Intn(len(result))].Sentence)
+	// if result != nil {
+	// 	room.IO.BroadcastTo(room.Name, "speak", id, result[rand.Intn(len(result))].Sentence)
+	// }
+
 }

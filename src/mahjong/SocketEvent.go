@@ -1,6 +1,7 @@
 package mahjong
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -250,5 +251,22 @@ func getTing(room string) []bool {
 
 func manualInputMessage(room string, sentence string, id int, uuid string) {
 	fmt.Println(room, sentence, id, uuid)
+	var name string
+	var actions []ActionInfo
+	for _, player := range game.Rooms[room].Players {
+		if id == player.ID {
+			name = player.UUID
+			actions = player.Actions
+		}
+	}
+	if len(actions) > 16 {
+		actions = actions[len(actions)-16:]
+	}
+	logInfo := &GossipLog{name, actions, sentence}
+	info, err := json.Marshal(logInfo)
+	if err != nil {
+		fmt.Println(err)
+	}
+	game.GossipDealer.Emit("logInfo", string(info))
 	game.Rooms[room].IO.BroadcastTo(game.Rooms[room].Name, "speak", id, sentence)
 }

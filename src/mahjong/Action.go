@@ -74,7 +74,7 @@ func JSONToAction(actionStr string) Action {
 type ActionSet map[int][]string
 
 // Throw emits to client to get the throw Tile
-func (player *Player) Throw(drawTile Tile) Tile {
+func (player *Player) Throw(currentIdx int, drawTile Tile) Tile {
 	if drawTile.Suit == -1 {
 		drawTile = player.Hand.At(0)
 	}
@@ -99,12 +99,11 @@ func (player *Player) Throw(drawTile Tile) Tile {
 
 	player.Hand.Sub(throwTile)
 	player.room.BroadcastThrow(player.ID, throwTile)
-	player.room.Speak("Throw", throwTile, player.ID, player.ID)
+	player.room.Record("Throw", throwTile, currentIdx, currentIdx)
 	if IsDefault {
-		player.room.Speak("ThrowSlow", throwTile, player.ID, ((player.ID)+rand.Intn(3)+1)%4)
+		player.room.Record("ThrowSlow", throwTile, currentIdx, ((currentIdx)+rand.Intn(3)+1)%4)
 	}
 	player.ThrowTimes++
-	player.AddThrowBefore(throwTile)
 	player.StepsToHu = player.Hand.CountStepsToHu()
 	if player.CheckTing() {
 		go func() {
@@ -114,7 +113,7 @@ func (player *Player) Throw(drawTile Tile) Tile {
 			if player.checkTing(val) && val.(bool) {
 				player.IsTing = true
 				player.room.BroadcastTing(player.ID)
-				player.room.Speak("Ting", NewTile(-1, 0), player.ID, player.ID)
+				player.room.Record("Ting", NewTile(-1, 0), player.ID, player.ID)
 			}
 		}()
 	}
@@ -122,17 +121,16 @@ func (player *Player) Throw(drawTile Tile) Tile {
 }
 
 // Draw draws a Tile
-func (player *Player) Draw() (Action, bool, bool) {
+func (player *Player) Draw(currentIdx int) (Action, bool, bool) {
 	for player.room.Deck.Count() > 16 {
 		drawTile := player.room.Deck.Draw()
 		player.room.BroadcastDraw(player.ID, player.room.Deck.Count())
 		player.Socket().Emit("draw", drawTile.ToString())
-		player.DrawTimes++
 		if drawTile.Suit == 4 {
 			player.Flowers.Add(drawTile)
 			time.Sleep(1 * time.Second)
 			player.room.BroadcastHua(player.ID, drawTile)
-			player.room.Speak("Draw", drawTile, player.ID, player.ID)
+			player.room.Record("Draw", drawTile, currentIdx, currentIdx)
 			if player.room.checkSevenFlower(player, drawTile) {
 				return NewAction(COMMAND["NONE"], NewTile(-1, 0), 0), true, true
 			}
@@ -141,7 +139,7 @@ func (player *Player) Draw() (Action, bool, bool) {
 		var tai TaiData
 		player.CheckHu(drawTile, 1, &tai)
 		player.Hand.Add(drawTile)
-		player.room.Speak("Draw", drawTile, player.ID, player.ID)
+		player.room.Record("Draw", drawTile, currentIdx, currentIdx)
 		actionSet, command := player.getAvaliableAction(player.ID, true, drawTile, tai)
 		playerAct := NewAction(COMMAND["NONE"], drawTile, 0)
 
@@ -152,7 +150,7 @@ func (player *Player) Draw() (Action, bool, bool) {
 			playerAct = player.Command(actionSet, command, -1)
 		}
 
-		player.procDrawCommand(drawTile, &playerAct, tai)
+		player.procDrawCommand(currentIdx, drawTile, &playerAct, tai)
 		player.FirstDraw = false
 		return playerAct, false, false
 	}
@@ -282,13 +280,13 @@ func (player *Player) checkNonDrawAction(id int, tile Tile, tai TaiData) (Action
 	return actionSet, command
 }
 
-func (player *Player) procDrawCommand(drawTile Tile, act *Action, tai TaiData) {
+func (player *Player) procDrawCommand(currentIdx int, drawTile Tile, act *Action, tai TaiData) {
 	if (act.Command & COMMAND["ZIMO"]) != 0 {
 		act.Score = player.Hu(act.Tile, tai, act.Command, false, true, -1)
 	} else if (act.Command & (COMMAND["ONGON"] | COMMAND["PONGON"])) != 0 {
 		player.Gon(act.Tile, act.Command, -1)
 	} else {
 		time.Sleep(1 * time.Second)
-		act.Tile = player.Throw(drawTile)
+		act.Tile = player.Throw(currentIdx, drawTile)
 	}
 }

@@ -24,32 +24,35 @@ type ScoreRecord struct {
 	Tile    string
 }
 
+type ActionInfo struct {
+	Turn   int
+	Action string
+	From   int
+	Card   string
+}
+
 // Player represents a player in mahjong
 type Player struct {
-	Hand          SuitSet
-	EatTiles      []EatAction
-	PonTiles      SuitSet
-	GonTiles      SuitSet
-	OngonTiles    SuitSet
-	Flowers       SuitSet
-	NoActionTimes int
-	DiscardTiles  SuitSet
-	ScoreLog      ScoreRecord
-	Credit        int
-	JustGon       bool
-	FirstDraw     bool
-	ID            int
-	UUID          string
-	ThrowTimes    int //哈拉加的
-	DrawTimes     int
-	StepsToHu     int
-	IsTing        bool
-	OtherTing     bool
-	Times         [3]Record
-	BaTimes       [3]Record
-	ThrowBefore   []Tile
-	SafeBefore    []Tile
-	room          *Room
+	Hand         SuitSet
+	EatTiles     []EatAction
+	PonTiles     SuitSet
+	GonTiles     SuitSet
+	OngonTiles   SuitSet
+	Flowers      SuitSet
+	DiscardTiles SuitSet
+	ScoreLog     ScoreRecord
+	Credit       int
+	JustGon      bool
+	FirstDraw    bool
+	ID           int
+	UUID         string
+	ThrowTimes   int //哈拉加的
+	StepsToHu    int
+	IsTing       bool
+	OtherTing    bool
+	SafeBefore   []string
+	Actions      []ActionInfo
+	room         *Room
 }
 
 // Name returns the player's name
@@ -87,14 +90,8 @@ func (player *Player) Init() {
 	player.IsTing = false
 	player.OtherTing = false
 	player.ThrowTimes = 0
-	player.DrawTimes = 0
-	player.NoActionTimes = 0
-	for i := 0; i < 3; i++ {
-		player.Times[i].Clear()
-		player.BaTimes[i].Clear()
-	}
-	player.ThrowBefore = player.ThrowBefore[:0]
-	player.SafeBefore = player.SafeBefore[:0]
+	player.SafeBefore = []string{}
+	player.Actions = []ActionInfo{}
 
 	player.JustGon = false
 	player.IsTing = false

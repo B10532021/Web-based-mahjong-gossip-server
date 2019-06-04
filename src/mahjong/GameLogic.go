@@ -49,7 +49,7 @@ func (room *Room) Run() {
 				room.BroadcastBanker(room.Banker, room.NumKeepWin)
 				//連莊哈拉
 				if room.NumKeepWin != 0 && room.KeepWin {
-					room.Speak("KeepWin", NewTile(-1, 0), room.Banker, room.Banker)
+					room.Record("KeepWin", NewTile(-1, 0), room.Banker, room.Banker)
 				}
 				currentIdx := room.Banker
 				room.preproc(currentIdx)
@@ -59,7 +59,7 @@ func (room *Room) Run() {
 					if room.Players[k].Flowers.Count() == 8 {
 						flag = true
 						room.Players[k].Hu(room.Players[k].Flowers.At(0), TaiData{8, "八仙過海 "}, COMMAND["ZIMO"], false, false, -1)
-						room.Speak("Zimo", NewTile(-1, 0), -1, k)
+						room.Record("Zimo", NewTile(-1, 0), -1, k)
 						currentIdx = k
 					}
 				}
@@ -77,7 +77,7 @@ func (room *Room) Run() {
 					//拿到一手不錯的牌
 					for k := 0; k < 4; k++ {
 						if room.Players[k].StepsToHu = room.Players[k].Hand.CountStepsToHu(); room.Players[k].StepsToHu < 4 {
-							room.Speak("GoodStart", NewTile(-1, 0), -1, k)
+							room.Record("GoodStart", NewTile(-1, 0), -1, k)
 							//currentIdx = k??
 						}
 					}
@@ -91,21 +91,21 @@ func (room *Room) Run() {
 						room.State = IdxTurn + currentIdx
 
 						if onlyThrow {
-							throwTile = curPlayer.Throw(throwTile)
+							throwTile = curPlayer.Throw(currentIdx, throwTile)
 							onlyThrow = false
 						} else {
-							act, gameOver, sevenFlower = curPlayer.Draw()
+							act, gameOver, sevenFlower = curPlayer.Draw(currentIdx)
 							throwTile = act.Tile
 						}
 
 						if gameOver {
 							room.end()
 							if sevenFlower && currentIdx != room.Banker {
-								room.Speak("Hu", act.Tile, currentIdx, room.SevenID)
+								room.Record("Hu", act.Tile, currentIdx, room.SevenID)
 								room.KeepWin = false
 								room.NumKeepWin = 0
 							} else {
-								room.Speak("Zimo", act.Tile, currentIdx, currentIdx)
+								room.Record("Zimo", act.Tile, currentIdx, currentIdx)
 								room.KeepWin = true
 								room.NumKeepWin++
 							}
@@ -119,9 +119,9 @@ func (room *Room) Run() {
 						} else if act.Command != COMMAND["NONE"] && (act.Command&COMMAND["ZIMO"]) == 0 {
 							curPlayer.Success(currentIdx, act.Command, act.Tile, act.Score)
 							if act.Command == COMMAND["ONGON"] {
-								room.Speak("OnGon", act.Tile, currentIdx, currentIdx)
+								room.Record("OnGon", act.Tile, currentIdx, currentIdx)
 							} else if act.Command == COMMAND["PONGON"] {
-								room.Speak("PonGon", act.Tile, currentIdx, currentIdx)
+								room.Record("PonGon", act.Tile, currentIdx, currentIdx)
 							}
 						} else if (act.Command & COMMAND["ZIMO"]) != 0 {
 							huIdxArray = append(huIdxArray, curPlayer.ID)
@@ -136,9 +136,9 @@ func (room *Room) Run() {
 
 						if len(huIdxArray) > 0 {
 							if (act.Command & COMMAND["ZIMO"]) != 0 {
-								room.Speak("Zimo", act.Tile, currentIdx, currentIdx)
+								room.Record("Zimo", act.Tile, currentIdx, currentIdx)
 							} else {
-								room.Speak("Hu", act.Tile, currentIdx, huIdxArray[0])
+								room.Record("Hu", act.Tile, currentIdx, huIdxArray[0])
 							}
 							room.end()
 							flag := false
@@ -157,18 +157,13 @@ func (room *Room) Run() {
 							break
 						}
 						if room.Deck.Count() <= 16 {
-							room.Speak("Draws", NewTile(-1, 0), -1, room.Banker)
+							room.Record("Draws", NewTile(-1, 0), room.Banker, room.Banker)
 							room.end()
 							room.KeepWin = true
 							room.NumKeepWin++
 							break
 						}
-						for i := 0; i < 4; i++ {
-							if room.Players[i].NoActionTimes > 30 && !onlyThrow {
-								room.Speak("NoAction", NewTile(-1, 0), i, i)
-								room.Players[i].NoActionTimes = 0
-							}
-						}
+
 					}
 				}
 				time.Sleep(20 * time.Second)
@@ -353,7 +348,7 @@ func (room *Room) checkOthers(currentIdx int, throwTile Tile, huIdxArray *[]int,
 			go func(i int) {
 				playersAct[i-1] = otherPlayer.Command(actionSet, command, currentIdx)
 				if actionSet != nil && playersAct[i-1].Command == COMMAND["NONE"] {
-					room.Speak("NoTakeAction", NewTile(-1, 0), -1, otherPlayer.ID)
+					room.Record("NoTakeAction", NewTile(-1, 0), (i+currentIdx)%4, (i+currentIdx)%4)
 				}
 				waitGroup.Done()
 			}(i)
@@ -421,32 +416,32 @@ func (room *Room) doAction(currentIdx int, throwTile Tile, huIdxArray []int, gon
 		if eatAction.Idx != -1 {
 			room.Players[eatAction.Idx].Fail(COMMAND["EAT"])
 		}
-	} else if gonIdx != -1 {
-		room.Players[gonIdx].Success(currentIdx, COMMAND["GON"], throwTile, 0)
-		room.Players[gonIdx].Gon(throwTile, COMMAND["GON"], currentIdx)
-		room.RecordPlayerTimes(COMMAND["GON"], currentIdx, gonIdx) //紀錄玩家的連續事件
-		room.Speak("Gon", throwTile, currentIdx, gonIdx)
-		currentIdx = gonIdx
-	} else if ponIdx != -1 {
-		room.Players[ponIdx].Success(currentIdx, COMMAND["PON"], throwTile, 0)
-		room.Players[ponIdx].Pon(throwTile)
-		room.RecordPlayerTimes(COMMAND["PON"], currentIdx, ponIdx)
-		room.Speak("Pon", throwTile, currentIdx, ponIdx)
-		currentIdx = ponIdx
-		onlyThrow = true
-	} else if eatAction.Idx != -1 {
-		room.Players[eatAction.Idx].Success(currentIdx, COMMAND["EAT"], eatAction, 0)
-		room.Players[eatAction.Idx].Eat(eatAction)
-		room.RecordPlayerTimes(COMMAND["Eat"], currentIdx, eatAction.Idx)
-		room.Speak("Eat", throwTile, currentIdx, eatAction.Idx)
-		currentIdx = eatAction.Idx
-		onlyThrow = true
 	} else {
-		room.RecordPlayerTimes(COMMAND["NONE"], currentIdx, -1)
+		for i := 0; i < 4; i++ {
+			room.Players[i].SafeBefore = append(room.Players[i].SafeBefore, throwTile.ToString())
+		}
+		if gonIdx != -1 {
+			room.Players[gonIdx].Success(currentIdx, COMMAND["GON"], throwTile, 0)
+			room.Players[gonIdx].Gon(throwTile, COMMAND["GON"], currentIdx)
+			room.Record("Gon", throwTile, currentIdx, gonIdx)
+			currentIdx = gonIdx
+		} else if ponIdx != -1 {
+			room.Players[ponIdx].Success(currentIdx, COMMAND["PON"], throwTile, 0)
+			room.Players[ponIdx].Pon(throwTile)
+			room.Record("Pon", throwTile, currentIdx, ponIdx)
+			currentIdx = ponIdx
+			onlyThrow = true
+		} else if eatAction.Idx != -1 {
+			room.Players[eatAction.Idx].Success(currentIdx, COMMAND["EAT"], eatAction, 0)
+			room.Players[eatAction.Idx].Eat(eatAction)
+			room.Record("Eat", throwTile, currentIdx, eatAction.Idx)
+			currentIdx = eatAction.Idx
+			onlyThrow = true
+		}
 	}
 
 	if (gonIdx != -1 || ponIdx != -1) && eatAction.Idx != -1 {
-		room.Speak("CantEat", throwTile, currentIdx, eatAction.Idx)
+		room.Record("CantEat", throwTile, currentIdx, eatAction.Idx)
 	}
 
 	return currentIdx, onlyThrow
@@ -472,20 +467,4 @@ func (room *Room) end() {
 		})
 	}
 	room.BroadcastEnd(data)
-}
-
-func (room *Room) RecordPlayerTimes(Command int, currentIdx int, actionIdx int) {
-	for i := 0; i < 4; i++ {
-		if i == actionIdx {
-			room.Players[i].Action(Command, -1)
-			room.Players[currentIdx].BaAction(Command)
-			room.Players[i].NoActionTimes = 0
-		} else if i != currentIdx {
-			room.Players[i].Action(COMMAND["NONE"], currentIdx)
-			room.Players[i].NoActionTimes++
-		}
-	}
-	if actionIdx == -1 {
-		room.Players[currentIdx].BaAction(COMMAND["NONE"])
-	}
 }
