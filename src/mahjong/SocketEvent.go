@@ -46,7 +46,7 @@ func SocketConnect(so socketio.Socket) {
 	})
 
 	so.On("gossip", func() string {
-		game.GossipServer = so
+		game.GossipDealer = so
 		// var record []ActionInfo
 		// for i := 0; i < 5; i++ {
 		// 	record = append(record, ActionInfo{10, "throw", 0, "f6"})
@@ -59,7 +59,17 @@ func SocketConnect(so socketio.Socket) {
 		// 	return "json fail"
 		// }
 		// fmt.Printf("%T\n", info)
-		// game.GossipServer.Emit("gossipInfo", string("inadsf"), func(pid int, situation string) {
+		// game.GossipDealer.Emit("gossipInfo", string(info), func(pid int, situation string) {
+		// 	fmt.Println(pid, situation)
+		// })
+
+		// logInfo := &GossipLog{"123", record, "testtest"}
+		// info, err = json.Marshal(logInfo)
+		// if err != nil {
+		// 	fmt.Println(err)
+		// 	return "json fail"
+		// }
+		// game.GossipDealer.Emit("logInfo", string(info), func(pid int, situation string) {
 		// 	fmt.Println(pid, situation)
 		// })
 		return "connect"
@@ -238,7 +248,7 @@ func getTing(room string) []bool {
 	return game.Rooms[room].GetTing()
 }
 
-func manualInputMessage(room string, sentence string, id int) {
-	fmt.Println(room, sentence, id)
+func manualInputMessage(room string, sentence string, id int, uuid string) {
+	fmt.Println(room, sentence, id, uuid)
 	game.Rooms[room].IO.BroadcastTo(game.Rooms[room].Name, "speak", id, sentence)
 }
