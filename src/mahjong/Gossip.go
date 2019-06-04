@@ -61,12 +61,23 @@ func (room Room) Record(action string, card Tile, currentIdx int, actionIdx int)
 		room.Players[actionIdx].Actions = append(room.Players[actionIdx].Actions, ActionInfo{room.Turn, action, -1, card.ToString()})
 	} else if action == "Draw" {
 		room.Players[actionIdx].Actions = append(room.Players[actionIdx].Actions, ActionInfo{room.Turn, action, -1, card.ToString()})
-		if room.Players[actionIdx].StepsToHu > room.Players[actionIdx].Hand.CountStepsToHu() {
-			room.Players[actionIdx].Actions = append(room.Players[actionIdx].Actions, ActionInfo{room.Turn, "SubTingNum", -1, card.ToString()})
-		}
+
 	}
 
 	room.GossipTalk(action, card.ToString(), actionIdx)
+	if action == "Eat" || action == "Pon" || action == "Gon" || action == "Hu" {
+		room.GossipTalk("Ba"+action, card.ToString(), currentIdx)
+		if sub := (actionIdx - currentIdx + 4) % 4; sub > 1 {
+			for i := 1; i < sub; i++ {
+				room.GossipTalk("PassDraw", card.ToString(), (currentIdx+i)%4)
+			}
+		}
+	} else if action == "Draw" {
+		if room.Players[actionIdx].StepsToHu > room.Players[actionIdx].Hand.CountStepsToHu() {
+			room.GossipTalk("SubTingNum", card.ToString(), actionIdx)
+		}
+	}
+
 }
 
 func (room Room) CountDeadCard() SuitSet {
