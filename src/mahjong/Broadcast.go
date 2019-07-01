@@ -2,6 +2,7 @@ package mahjong
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 // BroadcastRemainTile broadcasts remain tile
@@ -99,11 +100,16 @@ func (room Room) BroadcastCoversation(id int, sentence string) {
 	if id == -1 || sentence == "" {
 		return
 	}
-	room.IO.BroadcastTo(room.Name, "speak", room.Players[id].ID, sentence)
+	if id == 2 && len(sentence) > 6 {
+		fmt.Println("player2 speak too long")
+	}else {
+		room.IO.BroadcastTo(room.Name, "speak", room.Players[id].ID, sentence)
+	}
+	
 	// result := []Sentence{}
 	// err := game.GossipDB.C("sentences").Find(bson.M{"Situation": action, "$or": []bson.M{bson.M{"Name": ""}, bson.M{"Name": "123"}}}).All(&result)
 	// if err != nil {
-	// 	fmt.Println(err)
+	// 	(err)
 	// 	return
 	// }
 	// fmt.Println(result[rand.Intn(len(result))].Sentence)
